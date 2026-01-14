@@ -156,6 +156,18 @@ async def list_tools() -> list[Tool]:
                 "required": ["playlist_id", "queries"],
             },
         ),
+        Tool(
+            name="get_playlist_details",
+            description="Get details and tracks from a YouTube playlist.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "playlist_id": {"type": "string", "description": "Playlist ID to retrieve"},
+                    "limit": {"type": "integer", "description": "Max tracks to return", "default": 100},
+                },
+                "required": ["playlist_id"],
+            },
+        ),
     ]
 
 
@@ -222,6 +234,21 @@ async def call_tool(
                 lines.append(f"  ✓ {t['query']} → {t['matched']}")
             if result["failedQueries"]:
                 lines.append(f"\nFailed: {', '.join(result['failedQueries'])}")
+            return [TextContent(type="text", text="\n".join(lines))]
+
+        elif name == "get_playlist_details":
+            result = await ytmusic_client.get_playlist(
+                playlist_id=arguments["playlist_id"],
+                limit=arguments.get("limit", 100),
+            )
+            lines = [
+                f"Playlist: {result['title']}",
+                f"Description: {result['description'] or 'No description'}",
+                f"Tracks ({result['trackCount']}):\n",
+            ]
+            for t in result["tracks"]:
+                artist = t["artists"][0]["name"] if t.get("artists") else "Unknown"
+                lines.append(f"  - {t['title']} - {artist}")
             return [TextContent(type="text", text="\n".join(lines))]
 
         else:
