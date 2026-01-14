@@ -252,6 +252,49 @@ class YouTubeMusicClient:
             logger.error(f"Failed to delete playlist: {e}")
             raise RuntimeError(f"Failed to delete playlist: {str(e)}")
 
+    async def update_playlist(
+        self, playlist_id: str, title: Optional[str] = None, description: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Update playlist title and/or description"""
+        try:
+            # First get current playlist info
+            current = self.youtube.playlists().list(
+                part="snippet,status",
+                id=playlist_id,
+            ).execute()
+
+            if not current.get("items"):
+                raise RuntimeError(f"Playlist not found: {playlist_id}")
+
+            playlist = current["items"][0]
+            snippet = playlist["snippet"]
+
+            # Update fields if provided
+            if title:
+                snippet["title"] = title
+            if description is not None:
+                snippet["description"] = description
+
+            # Send update
+            result = self.youtube.playlists().update(
+                part="snippet,status",
+                body={
+                    "id": playlist_id,
+                    "snippet": snippet,
+                    "status": playlist.get("status", {}),
+                },
+            ).execute()
+
+            return {
+                "status": "updated",
+                "playlistId": playlist_id,
+                "title": result["snippet"]["title"],
+                "description": result["snippet"]["description"],
+            }
+        except Exception as e:
+            logger.error(f"Failed to update playlist: {e}")
+            raise RuntimeError(f"Failed to update playlist: {str(e)}")
+
     async def get_library_playlists(self, limit: int = 25) -> List[Dict[str, Any]]:
         """Get user's playlists"""
         try:

@@ -178,6 +178,19 @@ async def list_tools() -> list[Tool]:
                 "required": ["playlist_id"],
             },
         ),
+        Tool(
+            name="update_playlist",
+            description="Update a playlist's title and/or description.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "playlist_id": {"type": "string", "description": "Playlist ID to update"},
+                    "title": {"type": "string", "description": "New playlist title"},
+                    "description": {"type": "string", "description": "New playlist description"},
+                },
+                "required": ["playlist_id"],
+            },
+        ),
     ]
 
 
@@ -265,6 +278,17 @@ async def call_tool(
                 playlist_id=arguments["playlist_id"],
             )
             return [TextContent(type="text", text=f"Deleted playlist: {result['playlistId']}")]
+
+        elif name == "update_playlist":
+            result = await ytmusic_client.update_playlist(
+                playlist_id=arguments["playlist_id"],
+                title=arguments.get("title"),
+                description=arguments.get("description"),
+            )
+            return [TextContent(
+                type="text",
+                text=f"Updated playlist: {result['title']}\nDescription: {result['description']}"
+            )]
 
         else:
             return [TextContent(type="text", text=f"Unknown tool: {name}")]

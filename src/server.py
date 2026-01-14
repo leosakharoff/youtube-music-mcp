@@ -173,6 +173,30 @@ Delete a YouTube Music playlist. This action cannot be undone.
             },
         ),
         Tool(
+            name="update_playlist",
+            description="""
+Update a playlist's title and/or description.
+            """.strip(),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "playlist_id": {
+                        "type": "string",
+                        "description": "Playlist ID to update",
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "New playlist title",
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "New playlist description",
+                    },
+                },
+                "required": ["playlist_id"],
+            },
+        ),
+        Tool(
             name="get_library_playlists",
             description="""
 Get the user's library playlists from YouTube Music.
@@ -292,6 +316,17 @@ async def call_tool(
                 playlist_id=arguments["playlist_id"],
             )
             return [TextContent(type="text", text=f"Deleted playlist: {result['playlistId']}")]
+
+        elif name == "update_playlist":
+            result = await ytmusic_client.update_playlist(
+                playlist_id=arguments["playlist_id"],
+                title=arguments.get("title"),
+                description=arguments.get("description"),
+            )
+            return [TextContent(
+                type="text",
+                text=f"Updated playlist: {result['title']}\nDescription: {result['description']}"
+            )]
 
         elif name == "get_library_playlists":
             result = await ytmusic_client.get_library_playlists(
