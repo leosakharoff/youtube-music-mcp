@@ -4,6 +4,7 @@ For deployment to Railway, Fly.io, etc.
 """
 import os
 import json
+import base64
 import logging
 from typing import Any, Sequence
 
@@ -36,12 +37,20 @@ def init_youtube_client():
     """Initialize YouTube client from environment variables"""
     global ytmusic_client
 
-    # Get credentials from environment
+    # Get credentials from environment (supports base64 or raw JSON)
     token_json = os.environ.get("YOUTUBE_TOKEN_JSON")
+    token_b64 = os.environ.get("YOUTUBE_TOKEN_B64")
+
+    if token_b64:
+        # Base64 encoded token (preferred - avoids escaping issues)
+        token_json = base64.b64decode(token_b64).decode("utf-8")
+
     if not token_json:
-        raise RuntimeError("YOUTUBE_TOKEN_JSON environment variable not set")
+        raise RuntimeError("YOUTUBE_TOKEN_JSON or YOUTUBE_TOKEN_B64 environment variable not set")
 
     try:
+        # Clean any whitespace/newlines that might have snuck in
+        token_json = token_json.strip().replace('\n', '').replace('\r', '')
         token_data = json.loads(token_json)
         credentials = Credentials(
             token=token_data.get("token"),
