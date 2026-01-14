@@ -1,44 +1,73 @@
 # YouTube Music MCP Server
 
-Model Context Protocol server for YouTube Music integration. Allows AI assistants to search for music and create/manage playlists.
+Model Context Protocol server for YouTube Music integration. Allows AI assistants to search for music and create/manage playlists on your YouTube account.
 
 ## Features
 
-- Search for tracks, albums, artists, and playlists
+- Search for tracks on YouTube Music
 - Create new playlists
 - Add tracks to existing playlists
 - Batch operations (search and add multiple tracks at once)
-- Get library playlists
-- OAuth 2.0 authentication
+- List your library playlists
+- OAuth 2.0 authentication with Google
 
 ## Prerequisites
 
 - Python 3.10+
-- YouTube Music account (free or premium)
+- Google account with YouTube access
+- Google Cloud project with YouTube Data API enabled
 
-## Installation
+## Setup
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/youtube-music-mcp.git
-   cd youtube-music-mcp
-   ```
+### 1. Create a Google Cloud Project
 
-2. Create a virtual environment and install dependencies:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   pip install -e .
-   ```
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project (or select an existing one)
+3. Enable the **YouTube Data API v3**:
+   - Go to **APIs & Services** → **Library**
+   - Search for "YouTube Data API v3"
+   - Click **Enable**
 
-3. Set up OAuth authentication:
-   ```bash
-   python -m src.auth
-   ```
+### 2. Create OAuth Credentials
 
-   Follow the prompts to authenticate with your YouTube Music account. You'll be given a URL to visit, where you'll sign in with Google and authorize the application.
+1. Go to **APIs & Services** → **Credentials**
+2. Click **Create Credentials** → **OAuth client ID**
+3. If prompted, configure the OAuth consent screen:
+   - Choose **External** user type
+   - Fill in the required fields (app name, support email)
+   - Add scope: `https://www.googleapis.com/auth/youtube`
+   - Add your email as a **Test user** (required while in testing mode)
+4. Create OAuth client ID:
+   - Application type: **Desktop app**
+   - Name: `YouTube Music MCP` (or any name)
+5. Download the JSON file and save it as `client_secret.json` in the project root
 
-## Usage with Claude Desktop
+### 3. Install the Server
+
+```bash
+# Clone the repository
+git clone https://github.com/leosakharoff/youtube-music-mcp.git
+cd youtube-music-mcp
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -e .
+```
+
+### 4. Authenticate with Google
+
+```bash
+python -m src.auth
+```
+
+This opens a browser window for Google sign-in. After authorizing, your credentials are saved to `token.json` (gitignored).
+
+## Usage
+
+### Local Usage with Claude Desktop
 
 Add to your Claude Desktop config:
 
@@ -49,7 +78,7 @@ Add to your Claude Desktop config:
 {
   "mcpServers": {
     "youtube-music": {
-      "command": "python",
+      "command": "/path/to/youtube-music-mcp/venv/bin/python",
       "args": ["-m", "src.server"],
       "cwd": "/path/to/youtube-music-mcp"
     }
@@ -57,120 +86,91 @@ Add to your Claude Desktop config:
 }
 ```
 
-Or run the install helper:
-```bash
-python install.py
-```
-
-## Usage with Claude Code
+### Local Usage with Claude Code
 
 ```bash
 claude mcp add youtube-music "python -m src.server" --cwd /path/to/youtube-music-mcp
 ```
 
-## Example Usage
+### Remote Deployment (Render)
 
-Once connected to Claude, you can:
+Deploy to Render for use with Claude web/iOS without your computer running.
 
-**Search for music:**
-> "Search YouTube Music for 'Manuel Göttsching E2-E4'"
+1. Fork this repository to your GitHub account
 
-**Create a playlist:**
-> "Create a YouTube Music playlist called 'Motorik Meditation' with description 'Hypnotic krautrock and ambient jazz'"
+2. Create a new **Web Service** on [Render](https://render.com):
+   - Connect your GitHub repo
+   - Build Command: `pip install -r requirements.txt`
+   - Start Command: `python -m src.server_remote`
 
-**Add tracks:**
-> "Search for 'Neu! Hallogallo' and add the top result to playlist [playlist_id]"
+3. Set environment variable:
+   - Generate base64 token: `cat token.json | base64`
+   - Add env var: `YOUTUBE_TOKEN_B64` = (your base64 string)
 
-**Batch add tracks:**
-> "Add these tracks to my playlist: 'Alice Coltrane Journey in Satchidananda', 'Pharoah Sanders Harvest Time', 'Popol Vuh In Den Gärten Pharaos'"
+4. Deploy! Your server will be at `https://your-service.onrender.com`
 
-**List your playlists:**
-> "Show me my YouTube Music playlists"
+5. In Claude, add custom connector with URL: `https://your-service.onrender.com/sse`
+
+> **Note:** Render free tier sleeps after 15 min of inactivity. First request may take ~30s to wake up.
+
+## Example Prompts
+
+Once connected to Claude, try:
+
+- *"Search YouTube Music for 'Neu! Hallogallo'"*
+- *"Create a playlist called 'Krautrock Classics'"*
+- *"Add these tracks to my playlist: 'Can Vitamin C', 'Kraftwerk Autobahn', 'Tangerine Dream Phaedra'"*
+- *"Show me my YouTube playlists"*
 
 ## Available Tools
 
-### search_youtube_music
-Search for music on YouTube Music.
+| Tool | Description |
+|------|-------------|
+| `search_youtube_music` | Search for tracks (returns videoId for adding to playlists) |
+| `create_playlist` | Create a new playlist (private, public, or unlisted) |
+| `add_to_playlist` | Add videos to an existing playlist |
+| `get_my_playlists` | List your YouTube playlists |
+| `search_and_add` | Search for songs and add top results to a playlist |
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| query | string | Yes | Search query |
-| limit | integer | No | Max results (1-100, default 20) |
-| filter | string | No | "songs", "videos", "albums", "artists", or "playlists" |
+## Troubleshooting
 
-### create_youtube_music_playlist
-Create a new playlist.
+### "Access blocked" during OAuth
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| title | string | Yes | Playlist name |
-| description | string | No | Playlist description |
-| privacy_status | string | No | "PRIVATE", "PUBLIC", or "UNLISTED" |
-| video_ids | array | No | Initial tracks to add |
+Your Google Cloud app is in testing mode. Add your email as a test user:
+1. Go to **APIs & Services** → **OAuth consent screen**
+2. Under **Test users**, click **Add Users**
+3. Add your Google account email
 
-### add_tracks_to_playlist
-Add tracks to an existing playlist.
+### Token refresh errors
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| playlist_id | string | Yes | Target playlist ID |
-| video_ids | array | Yes | Video IDs to add |
+Delete `token.json` and run `python -m src.auth` again.
 
-### search_and_add_to_playlist
-Search for tracks and add top results to a playlist.
+### Rate limiting
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| playlist_id | string | Yes | Target playlist ID |
-| search_queries | array | Yes | List of search queries |
-
-### get_playlist_details
-Get playlist information and tracks.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| playlist_id | string | Yes | Playlist ID |
-| limit | integer | No | Max tracks to return (default 100) |
-
-### get_library_playlists
-Get your library playlists.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| limit | integer | No | Max playlists to return (default 25) |
+YouTube Data API has quotas. If you hit limits:
+- Reduce batch sizes
+- Wait before retrying
+- Check your [API quota](https://console.cloud.google.com/apis/api/youtube.googleapis.com/quotas)
 
 ## Development
 
-### Running Tests
 ```bash
+# Install dev dependencies
 pip install -e ".[dev]"
-pytest tests/ -v
-```
 
-### Code Formatting
-```bash
+# Run tests
+pytest tests/ -v
+
+# Format code
 black src/ tests/
 ruff check src/ tests/
 ```
 
-## Troubleshooting
+## Security Notes
 
-### OAuth Issues
-If authentication fails:
-1. Delete `oauth.json`
-2. Run `python -m src.auth` again
-3. Make sure you're using the correct Google account
-
-### "No module named 'mcp'" Error
-```bash
-pip install mcp
-```
-
-### Rate Limiting
-YouTube Music API has rate limits. If you hit limits:
-- Add delays between bulk operations
-- Reduce batch sizes
-- Wait before retrying
+- `client_secret.json` and `token.json` contain sensitive credentials
+- Both are gitignored by default - **never commit them**
+- For remote deployment, use environment variables (base64 encoded)
 
 ## License
 
@@ -178,5 +178,5 @@ MIT License
 
 ## Acknowledgments
 
-- Built with [ytmusicapi](https://github.com/sigma67/ytmusicapi)
-- Uses [Model Context Protocol](https://modelcontextprotocol.io/)
+- Uses [YouTube Data API v3](https://developers.google.com/youtube/v3)
+- Built with [Model Context Protocol](https://modelcontextprotocol.io/)
