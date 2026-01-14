@@ -157,6 +157,22 @@ Returns all tracks by default (no limit).
             },
         ),
         Tool(
+            name="delete_playlist",
+            description="""
+Delete a YouTube Music playlist. This action cannot be undone.
+            """.strip(),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "playlist_id": {
+                        "type": "string",
+                        "description": "Playlist ID to delete",
+                    },
+                },
+                "required": ["playlist_id"],
+            },
+        ),
+        Tool(
             name="get_library_playlists",
             description="""
 Get the user's library playlists from YouTube Music.
@@ -270,6 +286,12 @@ async def call_tool(
                 output_lines.append(f"  - {t.get('title', 'Unknown')} - {artists}")
 
             return [TextContent(type="text", text="\n".join(output_lines))]
+
+        elif name == "delete_playlist":
+            result = await ytmusic_client.delete_playlist(
+                playlist_id=arguments["playlist_id"],
+            )
+            return [TextContent(type="text", text=f"Deleted playlist: {result['playlistId']}")]
 
         elif name == "get_library_playlists":
             result = await ytmusic_client.get_library_playlists(

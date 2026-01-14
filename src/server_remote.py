@@ -167,6 +167,17 @@ async def list_tools() -> list[Tool]:
                 "required": ["playlist_id"],
             },
         ),
+        Tool(
+            name="delete_playlist",
+            description="Delete a YouTube playlist. This action cannot be undone.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "playlist_id": {"type": "string", "description": "Playlist ID to delete"},
+                },
+                "required": ["playlist_id"],
+            },
+        ),
     ]
 
 
@@ -248,6 +259,12 @@ async def call_tool(
                 artist = t["artists"][0]["name"] if t.get("artists") else "Unknown"
                 lines.append(f"  - {t['title']} - {artist}")
             return [TextContent(type="text", text="\n".join(lines))]
+
+        elif name == "delete_playlist":
+            result = await ytmusic_client.delete_playlist(
+                playlist_id=arguments["playlist_id"],
+            )
+            return [TextContent(type="text", text=f"Deleted playlist: {result['playlistId']}")]
 
         else:
             return [TextContent(type="text", text=f"Unknown tool: {name}")]

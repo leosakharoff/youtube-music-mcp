@@ -243,6 +243,15 @@ class YouTubeMusicClient:
             logger.error(f"Failed to get playlist: {e}")
             raise RuntimeError(f"Failed to retrieve playlist: {str(e)}")
 
+    async def delete_playlist(self, playlist_id: str) -> Dict[str, Any]:
+        """Delete a playlist"""
+        try:
+            self.youtube.playlists().delete(id=playlist_id).execute()
+            return {"status": "deleted", "playlistId": playlist_id}
+        except Exception as e:
+            logger.error(f"Failed to delete playlist: {e}")
+            raise RuntimeError(f"Failed to delete playlist: {str(e)}")
+
     async def get_library_playlists(self, limit: int = 25) -> List[Dict[str, Any]]:
         """Get user's playlists"""
         try:
