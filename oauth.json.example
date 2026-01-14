@@ -1,0 +1,9 @@
+{
+  "_comment": "This is an example file. Run 'python -m src.auth' to generate your own oauth.json",
+  "access_token": "YOUR_ACCESS_TOKEN",
+  "expires_at": 1234567890,
+  "expires_in": 3600,
+  "refresh_token": "YOUR_REFRESH_TOKEN",
+  "scope": "https://www.googleapis.com/auth/youtube",
+  "token_type": "Bearer"
+}
