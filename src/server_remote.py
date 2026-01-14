@@ -158,12 +158,11 @@ async def list_tools() -> list[Tool]:
         ),
         Tool(
             name="get_playlist_details",
-            description="Get details and tracks from a YouTube playlist.",
+            description="Get details and all tracks from a YouTube playlist. Returns all tracks by default (no limit).",
             inputSchema={
                 "type": "object",
                 "properties": {
                     "playlist_id": {"type": "string", "description": "Playlist ID to retrieve"},
-                    "limit": {"type": "integer", "description": "Max tracks to return", "default": 100},
                 },
                 "required": ["playlist_id"],
             },
@@ -239,7 +238,6 @@ async def call_tool(
         elif name == "get_playlist_details":
             result = await ytmusic_client.get_playlist(
                 playlist_id=arguments["playlist_id"],
-                limit=arguments.get("limit", 100),
             )
             lines = [
                 f"Playlist: {result['title']}",

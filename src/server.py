@@ -143,6 +143,7 @@ a list of song names.
             name="get_playlist_details",
             description="""
 Retrieve details about a YouTube Music playlist including all tracks.
+Returns all tracks by default (no limit).
             """.strip(),
             inputSchema={
                 "type": "object",
@@ -150,12 +151,6 @@ Retrieve details about a YouTube Music playlist including all tracks.
                     "playlist_id": {
                         "type": "string",
                         "description": "Playlist ID to retrieve",
-                    },
-                    "limit": {
-                        "type": "integer",
-                        "description": "Maximum number of tracks to return",
-                        "default": 100,
-                        "minimum": 1,
                     },
                 },
                 "required": ["playlist_id"],
@@ -260,7 +255,6 @@ async def call_tool(
         elif name == "get_playlist_details":
             result = await ytmusic_client.get_playlist(
                 playlist_id=arguments["playlist_id"],
-                limit=arguments.get("limit", 100),
             )
 
             output_lines = [
@@ -271,12 +265,9 @@ async def call_tool(
                 "Tracks:",
             ]
 
-            for t in result["tracks"][:20]:  # Show first 20 tracks
+            for t in result["tracks"]:
                 artists = ", ".join([a.get("name", "") for a in t.get("artists", [])])
                 output_lines.append(f"  - {t.get('title', 'Unknown')} - {artists}")
-
-            if len(result["tracks"]) > 20:
-                output_lines.append(f"  ... and {len(result['tracks']) - 20} more tracks")
 
             return [TextContent(type="text", text="\n".join(output_lines))]
 

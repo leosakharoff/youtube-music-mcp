@@ -182,9 +182,9 @@ class YouTubeMusicClient:
             raise RuntimeError(f"Failed to add tracks: {str(e)}")
 
     async def get_playlist(
-        self, playlist_id: str, limit: int = 100
+        self, playlist_id: str, limit: Optional[int] = None
     ) -> Dict[str, Any]:
-        """Get playlist details and tracks"""
+        """Get playlist details and all tracks (paginated)"""
         try:
             # Get playlist metadata
             playlist_request = self.youtube.playlists().list(
@@ -198,31 +198,44 @@ class YouTubeMusicClient:
 
             playlist_info = playlist_response["items"][0]
             snippet = playlist_info.get("snippet", {})
+            total_tracks = playlist_info.get("contentDetails", {}).get("itemCount", 0)
 
-            # Get playlist items
-            items_request = self.youtube.playlistItems().list(
-                part="snippet",
-                playlistId=playlist_id,
-                maxResults=min(limit, 50),
-            )
-            items_response = items_request.execute()
-
+            # Get all playlist items with pagination
             tracks = []
-            for item in items_response.get("items", []):
-                item_snippet = item.get("snippet", {})
-                resource_id = item_snippet.get("resourceId", {})
-                tracks.append({
-                    "title": item_snippet.get("title"),
-                    "videoId": resource_id.get("videoId"),
-                    "artists": [{"name": item_snippet.get("videoOwnerChannelTitle", "")}],
-                    "position": item_snippet.get("position"),
-                })
+            next_page_token = None
+
+            while True:
+                items_request = self.youtube.playlistItems().list(
+                    part="snippet",
+                    playlistId=playlist_id,
+                    maxResults=50,
+                    pageToken=next_page_token,
+                )
+                items_response = items_request.execute()
+
+                for item in items_response.get("items", []):
+                    item_snippet = item.get("snippet", {})
+                    resource_id = item_snippet.get("resourceId", {})
+                    tracks.append({
+                        "title": item_snippet.get("title"),
+                        "videoId": resource_id.get("videoId"),
+                        "artists": [{"name": item_snippet.get("videoOwnerChannelTitle", "")}],
+                        "position": item_snippet.get("position"),
+                    })
+
+                    # Stop if we've reached the limit
+                    if limit and len(tracks) >= limit:
+                        break
+
+                next_page_token = items_response.get("nextPageToken")
+                if not next_page_token or (limit and len(tracks) >= limit):
+                    break
 
             return {
                 "id": playlist_id,
                 "title": snippet.get("title"),
                 "description": snippet.get("description"),
-                "trackCount": playlist_info.get("contentDetails", {}).get("itemCount", 0),
+                "trackCount": total_tracks,
                 "tracks": tracks,
             }
 
