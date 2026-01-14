@@ -130,7 +130,10 @@ Once connected to Claude, try:
 | `create_playlist` | Create a new playlist (private, public, or unlisted) |
 | `add_to_playlist` | Add videos to an existing playlist |
 | `get_my_playlists` | List your YouTube playlists |
+| `get_playlist_details` | Get all tracks from a playlist |
 | `search_and_add` | Search for songs and add top results to a playlist |
+| `update_playlist` | Update playlist title and/or description |
+| `delete_playlist` | Delete a playlist (cannot be undone) |
 
 ## Troubleshooting
 
