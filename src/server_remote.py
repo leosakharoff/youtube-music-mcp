@@ -315,6 +315,7 @@ async def handle_sse(request):
 async def handle_messages(request):
     """Handle POST messages for MCP"""
     await sse.handle_post_message(request.scope, request.receive, request._send)
+    return JSONResponse({"status": "ok"})
 
 
 async def health(request):
