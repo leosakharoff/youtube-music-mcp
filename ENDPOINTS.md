@@ -9,7 +9,7 @@ YouTube Data API har **BEGRÆNSET quota**.
 **REGLER:**
 - Brug KUN til at gemme playlist EFTER research er færdig
 - Aldrig mere end 25-30 tracks per session
-- Brug `search_and_add` til batch - IKKE enkelte `add_to_playlist`
+- Brug `search_and_add` til batch - IKKE enkelte søgninger
 - Hvis quota fejl: giv brugeren track-liste til manuel tilføjelse
 
 ---
@@ -19,54 +19,73 @@ YouTube Data API har **BEGRÆNSET quota**.
 ### search_youtube_music
 Søg efter tracks.
 
+| Argument | Type | Required | Default | Beskrivelse |
+|----------|------|----------|---------|-------------|
+| `query` | string | ✅ | - | Søgeord (f.eks. "Kraftwerk Autobahn") |
+| `limit` | integer | ❌ | 20 | Max resultater (1-50) |
+| `filter` | string | ❌ | "songs" | Filter: `songs`, `videos`, `albums`, `artists`, `playlists` |
+
 ```json
 {
-  "query": "Kraftwerk Autobahn",
-  "limit": 5
+  "query": "Neu! Hallogallo",
+  "limit": 5,
+  "filter": "songs"
 }
 ```
 
 **Returnerer:** videoId, title, artist, album, duration.
-
-**Brug til:** Find videoId før tilføjelse til playlist. Brug PRÆCISE søgninger.
-
-**Tip:** Søg "Artist - Track" for bedste match.
 
 ---
 
 ### create_playlist
 Opret ny playlist.
 
+| Argument | Type | Required | Default | Beskrivelse |
+|----------|------|----------|---------|-------------|
+| `title` | string | ✅ | - | Playlist navn |
+| `description` | string | ❌ | "" | Beskrivelse |
+| `privacy_status` | string | ❌ | "private" | `private`, `public`, `unlisted` |
+| `video_ids` | array | ❌ | [] | Video IDs at tilføje ved oprettelse |
+
 ```json
 {
   "title": "Berlin-Tokyo Kosmische 1978-1984",
   "description": "Krautrock til japansk ambient",
-  "privacy": "private|public|unlisted"
+  "privacy_status": "private",
+  "video_ids": ["dQw4w9WgXcQ", "abc123"]
 }
 ```
 
 **Returnerer:** playlistId
 
-**Brug til:** Opret ÉN playlist per session. Brug beskrivende navne!
-
 ---
 
 ### add_to_playlist
-Tilføj enkelt video.
+Tilføj videoer til playlist.
+
+| Argument | Type | Required | Default | Beskrivelse |
+|----------|------|----------|---------|-------------|
+| `playlist_id` | string | ✅ | - | Target playlist ID |
+| `video_ids` | array | ✅ | - | Liste af video IDs |
 
 ```json
 {
   "playlist_id": "PLxxxxxxx",
-  "video_id": "dQw4w9WgXcQ"
+  "video_ids": ["dQw4w9WgXcQ", "abc123"]
 }
 ```
 
-**⚠️ UNDGÅ!** Brug `search_and_add` i stedet for at spare quota.
+**⚠️ Kræver at du allerede har videoId'er. Brug `search_and_add` i stedet!**
 
 ---
 
-### search_and_add ⭐ PRIMÆR
+### search_and_add ⭐ ANBEFALET
 Søg og tilføj flere tracks på én gang.
+
+| Argument | Type | Required | Default | Beskrivelse |
+|----------|------|----------|---------|-------------|
+| `playlist_id` | string | ✅ | - | Target playlist ID |
+| `queries` | array | ✅ | - | Liste af søgestrenge |
 
 ```json
 {
@@ -80,25 +99,31 @@ Søg og tilføj flere tracks på én gang.
 }
 ```
 
-**Brug til:** PRIMÆR METODE! Saml alle tracks først, tilføj samlet.
+**PRIMÆR METODE! Saml alle tracks først, tilføj samlet.**
 
 ---
 
 ### get_my_playlists
 List brugerens playlists.
 
+| Argument | Type | Required | Default | Beskrivelse |
+|----------|------|----------|---------|-------------|
+| `limit` | integer | ❌ | 25 | Max antal playlists |
+
 ```json
 {
-  "max_results": 25
+  "limit": 50
 }
 ```
-
-**Brug til:** Find eksisterende playlists, undgå dubletter.
 
 ---
 
 ### get_playlist_details
-Hent tracks fra playlist.
+Hent alle tracks fra playlist.
+
+| Argument | Type | Required | Default | Beskrivelse |
+|----------|------|----------|---------|-------------|
+| `playlist_id` | string | ✅ | - | Playlist ID |
 
 ```json
 {
@@ -106,12 +131,16 @@ Hent tracks fra playlist.
 }
 ```
 
-**Brug til:** Se hvad der allerede er i en playlist.
-
 ---
 
 ### update_playlist
 Opdater playlist metadata.
+
+| Argument | Type | Required | Default | Beskrivelse |
+|----------|------|----------|---------|-------------|
+| `playlist_id` | string | ✅ | - | Playlist ID |
+| `title` | string | ❌ | - | Nyt navn |
+| `description` | string | ❌ | - | Ny beskrivelse |
 
 ```json
 {
@@ -126,13 +155,17 @@ Opdater playlist metadata.
 ### delete_playlist
 Slet playlist (PERMANENT).
 
+| Argument | Type | Required | Default | Beskrivelse |
+|----------|------|----------|---------|-------------|
+| `playlist_id` | string | ✅ | - | Playlist ID |
+
 ```json
 {
   "playlist_id": "PLxxxxxxx"
 }
 ```
 
-**⚠️ Kan ikke fortrydes!**
+**⚠️ Kan IKKE fortrydes!**
 
 ---
 
@@ -143,7 +176,7 @@ Slet playlist (PERMANENT).
 1. Research færdig med Discogs + Bandcamp
 2. Liste med 15-20 tracks klar
 3. create_playlist(title="Beskrivende navn")
-4. search_and_add(queries=[alle tracks])
+4. search_and_add(playlist_id, queries=[alle tracks])
 5. Færdig!
 ```
 
@@ -160,16 +193,17 @@ Slet playlist (PERMANENT).
 
 ## Præcise Søgninger
 
-For bedste match, søg:
+For bedste match:
 ```
 "Artist - Track Title"
-"Artist Track Title album:Album Name"
+"Kraftwerk Autobahn"
+"Neu! Hallogallo"
 ```
 
 Undgå:
 ```
-"that one song about driving" (for vag)
-"kraftwerk" (for bred)
+"that one song about driving"
+"electronic music"
 ```
 
 ---
@@ -186,21 +220,5 @@ Hvis du får quota-fejl:
 
    - Artist 1 - Track 1
    - Artist 2 - Track 2
-   ...
    ```
-3. Foreslå at prøve igen næste dag
-
----
-
-## Playlist Navngivning
-
-❌ **Generisk:**
-- "Mix"
-- "Chill"
-- "Electronic"
-
-✅ **Beskrivende:**
-- "Conny Plank Production Tree 1974-1982"
-- "Fra Düsseldorf til Tokyo: Kosmische"
-- "Post-Punk → Ambient Evolution"
-- "Label Deep Dive: ECM 1970s"
+3. Foreslå at prøve igen senere
